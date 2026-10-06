@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../data/article.dart';
+import '../../data/share_utils.dart';
 import '../../data/time_utils.dart';
+import '../bookmark_scope.dart';
 import '../tokens.dart';
 
 /// A compact horizontal card: thumbnail on the left, text on the right.
-/// Used for every article after the first one in the feed.
+/// Used for every article after the first one in the feed, and for the
+/// saved list on SavedScreen.
 class ArticleCard extends StatelessWidget {
   const ArticleCard({super.key, required this.article, required this.onTap});
 
@@ -103,11 +106,52 @@ class ArticleCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Trailing actions: share (stateless, just opens the
+                // OS sheet) and the bookmark toggle, which reads through
+                // BookmarkScope so this card rebuilds on any toggle.
+                IconButton(
+                  tooltip: 'Share article',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.share_outlined, size: 20),
+                  color: scheme.onSurfaceVariant,
+                  onPressed: () => shareArticle(article),
+                ),
+                _BookmarkButton(article: article, dense: true),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The bookmark icon shared by every card and the detail screen. Outlined
+/// when unsaved, filled when saved; tapping toggles in BookmarkStore.
+class _BookmarkButton extends StatelessWidget {
+  const _BookmarkButton({required this.article, this.dense = false});
+
+  final Article article;
+
+  /// Dense mode for the small list-card row; larger tap target on detail.
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final store = BookmarkScope.maybeOf(context);
+    final saved = store?.isSaved(article.id) ?? false;
+    return IconButton(
+      tooltip: saved ? 'Remove bookmark' : 'Save for later',
+      // Keeping the same minimum tap target but a smaller visual icon
+      // stops the compact card row from ballooning in height.
+      visualDensity: dense ? VisualDensity.compact : null,
+      icon: Icon(
+        saved ? Icons.bookmark : Icons.bookmark_border,
+        size: dense ? 20 : 24,
+        color: saved ? scheme.primary : scheme.onSurfaceVariant,
+      ),
+      onPressed: () => store?.toggle(article),
     );
   }
 }

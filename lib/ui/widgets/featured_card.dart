@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../data/article.dart';
+import '../../data/share_utils.dart';
 import '../../data/time_utils.dart';
+import '../bookmark_scope.dart';
 import '../tokens.dart';
 
 /// The large hero-style card at the top of the feed: full-bleed photo,
@@ -65,6 +67,23 @@ class FeaturedCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Floating actions over the photo, top-right. The
+                // frosted white circles keep them visible on any image.
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Row(
+                    children: [
+                      _FeaturedCircleButton(
+                        tooltip: 'Share article',
+                        icon: Icons.share_outlined,
+                        onTap: () => shareArticle(article),
+                      ),
+                      const SizedBox(width: 8),
+                      _FeaturedBookmark(article: article),
+                    ],
+                  ),
+                ),
                 Positioned(
                   left: 16,
                   right: 16,
@@ -116,6 +135,63 @@ class FeaturedCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The bookmark button that floats on the featured card's photo. Reads
+/// through BookmarkScope so it fills/clears in sync with the same
+/// article's card and detail-screen icons.
+class _FeaturedBookmark extends StatelessWidget {
+  const _FeaturedBookmark({required this.article});
+
+  final Article article;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = BookmarkScope.maybeOf(context);
+    final saved = store?.isSaved(article.id) ?? false;
+    return _FeaturedCircleButton(
+      tooltip: saved ? 'Remove bookmark' : 'Save for later',
+      icon: saved ? Icons.bookmark : Icons.bookmark_border,
+      iconColor: saved ? seedColor : Colors.black87,
+      onTap: () => store?.toggle(article),
+    );
+  }
+}
+
+/// A frosted white circular button that floats over the featured card's
+/// photo — shared shape for both floating actions (share, bookmark) so
+/// they read as one control family.
+class _FeaturedCircleButton extends StatelessWidget {
+  const _FeaturedCircleButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+    this.iconColor = Colors.black87,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.92),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Tooltip(
+          message: tooltip,
+          child: Padding(
+            padding: const EdgeInsets.all(7),
+            child: Icon(icon, size: 20, color: iconColor),
           ),
         ),
       ),

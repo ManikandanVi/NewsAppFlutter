@@ -47,6 +47,19 @@ class Article {
     );
   }
 
+  /// Serializes back to the same shape [Article.fromJson] reads — the
+  /// mirror image of the parser, so a saved article round-trips exactly.
+  /// Used by BookmarkStore to persist articles as JSON.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'image_url': imageUrl,
+        'summary': summary,
+        'news_site': newsSite,
+        'published_at': publishedAt.toIso8601String(),
+        'url': url,
+      };
+
   /// Shortens the summary for list cards so a long paragraph doesn't
   /// overflow the layout. "…" is added only when we actually trimmed.
   String get shortSummary {

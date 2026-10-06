@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/article.dart';
+import '../data/share_utils.dart';
 import '../data/time_utils.dart';
+import 'bookmark_scope.dart';
 
 /// Full-screen article view: hero image, source badge, summary and a
 /// button that opens the original article in the browser.
@@ -67,7 +69,9 @@ class DetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Source + date row.
+                  // Source + date row (bookmark lives here too — DetailScreen is a
+                  // StatelessWidget, so the icon reads its saved-state from
+                  // BookmarkScope and rebuilds on toggle).
                   Row(
                     children: [
                       Container(
@@ -91,6 +95,7 @@ class DetailScreen extends StatelessWidget {
                         style: text.bodySmall
                             ?.copyWith(color: scheme.onSurfaceVariant),
                       ),
+                      _DetailBookmark(article: article),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -108,14 +113,33 @@ class DetailScreen extends StatelessWidget {
                     style: text.bodyLarge?.copyWith(height: 1.65),
                   ),
                   const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton.icon(
-                      onPressed: () => _openOriginal(context),
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('Read full story'),
-                    ),
+                  // The two reading actions side by side: open the
+                  // original (primary) and share it (tonal). Expanded
+                  // gives each an equal half of the row.
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 52,
+                          child: FilledButton.icon(
+                            onPressed: () => _openOriginal(context),
+                            icon: const Icon(Icons.open_in_new),
+                            label: const Text('Read full story'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 52,
+                          child: FilledButton.tonalIcon(
+                            onPressed: () => shareArticle(article),
+                            icon: const Icon(Icons.share_outlined),
+                            label: const Text('Share'),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   Center(
@@ -141,6 +165,29 @@ class DetailScreen extends StatelessWidget {
         child: Icon(Icons.rocket_launch_outlined,
             size: 48, color: scheme.outline),
       );
+}
+
+/// The detail screen's bookmark toggle. Same BookmarkScope dependency as
+/// the card icons, so all views of one article stay in sync.
+class _DetailBookmark extends StatelessWidget {
+  const _DetailBookmark({required this.article});
+
+  final Article article;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final store = BookmarkScope.maybeOf(context);
+    final saved = store?.isSaved(article.id) ?? false;
+    return IconButton(
+      tooltip: saved ? 'Remove bookmark' : 'Save for later',
+      icon: Icon(
+        saved ? Icons.bookmark : Icons.bookmark_border,
+        color: saved ? scheme.primary : scheme.onSurfaceVariant,
+      ),
+      onPressed: () => store?.toggle(article),
+    );
+  }
 }
 
 /// A gradient that fades the bottom of the hero image into transparency,
